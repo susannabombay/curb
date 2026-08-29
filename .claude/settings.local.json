@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pkill -f \"uvicorn main:app\")",
+      "Bash(find /Users/susannabombay/Desktop -maxdepth 3 -iname \"*propos*\" -o -iname \"*curb*\" 2>/dev/null | grep -v node_modules | grep -v venv; echo \"---\"; find /Users/susannabombay/Desktop/curb-app -iname \"*.md\" -o -iname \"*.pdf\" -o -iname \"*.docx\" 2>/dev/null | grep -v node_modules)",
+      "Bash(npm run *)",
+      "Bash(kill %1)",
+      "Bash(pkill -f \"vite\")"
+    ]
+  }
+}
