@@ -51,7 +51,7 @@ function csvCell(v) {
 // system or spreadsheet will take directly.
 export function downloadMonthCsv(summary) {
   const rows = [
-    ["Receipt", "Date", "Carpark", "Car plate", "Arrival", "Status", "Amount (SGD)"],
+    ["Receipt", "Date", "Carpark", "Vehicle plate", "Arrival", "Status", "Amount (SGD)"],
     ...summary.entries.map((e) => [
       receiptNumber(e),
       new Date(e.finishedAt).toLocaleDateString("en-SG"),

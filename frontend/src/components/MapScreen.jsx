@@ -1,7 +1,7 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { MapContainer, TileLayer, Marker, Tooltip, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
-import { MALLS, LOT_TYPES, availabilityClass, busyLevel, busyPercent, lotTypeCount } from "../mockData";
+import { MALLS, LOT_TYPES, availabilityClass, busyLevel, busyPercent, lotTypeCount, vehicleNoun } from "../mockData";
 import { ArrowIcon, CarIcon, LogoGlyph, PinIcon, SearchIcon } from "./icons.jsx";
 
 // Pins closer than this on screen (in pixels, at the current zoom/pan) get
@@ -260,7 +260,7 @@ export default function MapScreen({ onSelectMall, parkedCar, onClearParkedCar })
             </span>
             <span className="parked-strip-text">
               <b>
-                Your car: {parkedCar.level} · Zone {parkedCar.zone}
+                Your {vehicleNoun(parkedCar.lotType)}: {parkedCar.level} · Zone {parkedCar.zone}
               </b>
               <span>{parkedCar.carpark_name}{parkedCar.note ? ` · ${parkedCar.note}` : ""}</span>
             </span>

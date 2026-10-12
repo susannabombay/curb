@@ -4,10 +4,12 @@ import { getCurrentPosition } from "../location";
 import {
   CHECKIN_OPENS_BEFORE_MIN,
   estimateParkingFee,
+  estimateNote,
   findMall,
   formatCents,
-  formatDuration,
+  plateLabel,
   stayMinutes,
+  vehicleNoun,
 } from "../mockData";
 import { PARKING_LEVELS, PARKING_ZONES } from "../parkedCar";
 import ParkedCarCard from "./ParkedCarCard.jsx";
@@ -124,7 +126,7 @@ function ShareButton({ onShare }) {
 
 // After check-in: "where did you park?" so Find my car can bring the
 // driver back to the right level and zone hours later.
-function ParkSpotForm({ onSave }) {
+function ParkSpotForm({ vehicle, onSave }) {
   const [level, setLevel] = useState(null);
   const [zone, setZone] = useState(null);
   const [note, setNote] = useState("");
@@ -132,7 +134,7 @@ function ParkSpotForm({ onSave }) {
   return (
     <div className="card spot-form">
       <div className="form-card-title">Where did you park?</div>
-      <div className="muted">We'll remember it so you can find your car later.</div>
+      <div className="muted">We'll remember it so you can find your {vehicle} later.</div>
       <label className="field-label">Level</label>
       <div className="chip-row">
         {PARKING_LEVELS.map((l) => (
@@ -178,7 +180,12 @@ export default function ReservationPanel({
   onDone,
 }) {
   const mall = findMall(reservation.carpark_id);
-  const parkingEstimate = estimateParkingFee(mall, reservation.arriveTime, reservation.leaveTime);
+  const parkingEstimate = estimateParkingFee(
+    mall,
+    reservation.arriveTime,
+    reservation.leaveTime,
+    reservation.lotType
+  );
 
   // Destination is the mall's name, not raw lat/lon -- reverse-geocoding a
   // bare coordinate can snap to whatever unrelated business is registered
@@ -222,7 +229,7 @@ export default function ReservationPanel({
         {reservation.plate && (
           <div className="ticket-grid">
             <div>
-              <div className="stat-label">Car plate</div>
+              <div className="stat-label">{plateLabel(reservation.lotType)}</div>
               <b>{reservation.plate}</b>
             </div>
             {typeof reservation.fee_cents === "number" && (
@@ -250,7 +257,8 @@ export default function ReservationPanel({
             <span>
               Est. parking at {reservation.carpark_name}
               <small>
-                {formatDuration(stayMinutes(reservation.arriveTime, reservation.leaveTime))} · paid at the gantry
+                {estimateNote(reservation.lotType, stayMinutes(reservation.arriveTime, reservation.leaveTime))} · paid at
+                the gantry
               </small>
             </span>
             <b>~{formatCents(parkingEstimate)}</b>
@@ -289,7 +297,7 @@ export default function ReservationPanel({
             <ParkedCarCard car={parkedCar} compact onClear={() => onSaveParkedCar(null)} />
           </div>
         ) : (
-          <ParkSpotForm onSave={onSaveParkedCar} />
+          <ParkSpotForm vehicle={vehicleNoun(reservation.lotType)} onSave={onSaveParkedCar} />
         ))}
 
       {isTerminal && (

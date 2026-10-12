@@ -393,6 +393,7 @@ function DriverApp() {
         lat: reservation.lat,
         lon: reservation.lon,
         plate: reservation.plate,
+        lotType: reservation.lotType,
         ...spot,
         savedAt: new Date().toISOString(),
       })

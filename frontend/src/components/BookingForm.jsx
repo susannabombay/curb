@@ -7,8 +7,9 @@ import {
   PAYNOW_ENTITY_NAME,
   PAYNOW_UEN,
   estimateParkingFee,
+  estimateNote,
   formatCents,
-  formatDuration,
+  plateLabel,
   stayMinutes,
 } from "../mockData";
 import { addMinutesToTimeLabel } from "../time";
@@ -36,7 +37,7 @@ export default function BookingForm({ mall, arriveTime, tier, onBack, onConfirm 
   const feeCents = tier.holdFeeCents;
   const feeLabel = formatCents(feeCents);
   const discounted = feeCents < BOOKING_FEE_CENTS;
-  const parkingEstimate = estimateParkingFee(mall, arrive, leave);
+  const parkingEstimate = estimateParkingFee(mall, arrive, leave, lotType);
 
   // Generated once, lazily, the first time the driver actually picks
   // PayNow -- no point building it up front for the common (card) path.
@@ -101,9 +102,9 @@ export default function BookingForm({ mall, arriveTime, tier, onBack, onConfirm 
             required
           />
 
-          <label className="field-label">Car plate</label>
+          <label className="field-label">{plateLabel(lotType)}</label>
           <input
-            placeholder="e.g. SGX1234A"
+            placeholder={lotType === "motorcycle" ? "e.g. FBA1234B" : "e.g. SGX1234A"}
             value={plate}
             onChange={(e) => setPlate(e.target.value)}
             required
@@ -209,7 +210,7 @@ export default function BookingForm({ mall, arriveTime, tier, onBack, onConfirm 
               <span>
                 Est. parking at {mall.name}
                 <small>
-                  {formatDuration(stayMinutes(arrive, leave))} at the mall's rates · paid at the gantry
+                  {estimateNote(lotType, stayMinutes(arrive, leave))} · paid at the gantry
                 </small>
               </span>
               <span>~{formatCents(parkingEstimate)}</span>

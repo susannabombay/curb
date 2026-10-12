@@ -16,7 +16,7 @@ export function getParkedCar() {
   }
 }
 
-// car: { carpark_name, lat, lon, plate, level, zone, note, savedAt }
+// car: { carpark_name, lat, lon, plate, lotType, level, zone, note, savedAt }
 export function saveParkedCar(car) {
   try {
     localStorage.setItem(KEY, JSON.stringify(car));

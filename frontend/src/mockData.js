@@ -8,24 +8,24 @@
 // listed here since that's just availableNow itself.
 export const MALLS = [
   { id: "vivocity", name: "VivoCity", area: "HarbourFront", lat: 1.2645, lng: 103.8222, capacity: 250, availableNow: 214, lotBreakdown: { ev: 12, accessible: 8, family: 20, motorcycle: 40 },
-    rates: { firstHourCents: 160, blockCents: 110, blockMin: 60, dailyCapCents: 1500 },
+    rates: { firstHourCents: 160, blockCents: 110, blockMin: 60, dailyCapCents: 1500, motorcycleEntryCents: 130 },
     dropoff: { point: "Level 1 taxi stand, beside the main atrium entrance", graceMin: 10 } },
   { id: "ion", name: "ION Orchard", area: "Orchard", lat: 1.3039, lng: 103.8318, capacity: 180, availableNow: 38, lotBreakdown: { ev: 4, accessible: 3, family: 6, motorcycle: 15 },
-    rates: { firstHourCents: 428, blockCents: 214, blockMin: 30, dailyCapCents: null },
+    rates: { firstHourCents: 428, blockCents: 214, blockMin: 30, dailyCapCents: null, motorcycleEntryCents: 130 },
     dropoff: { point: "Orchard Turn driveway, Level 1 lobby", graceMin: 10 } },
   { id: "marina", name: "Marina Square", area: "Marina", lat: 1.2926, lng: 103.8573, capacity: 300, availableNow: 156, lotBreakdown: { ev: 10, accessible: 6, family: 14, motorcycle: 25 },
-    rates: { firstHourCents: 270, blockCents: 110, blockMin: 30, dailyCapCents: 2000 },
+    rates: { firstHourCents: 270, blockCents: 110, blockMin: 30, dailyCapCents: 2000, motorcycleEntryCents: 130 },
     dropoff: { point: "Raffles Boulevard entrance, beside the hotel lobby", graceMin: 15 } },
   { id: "jem", name: "Jem", area: "Jurong Lake District", lat: 1.3331, lng: 103.7436, capacity: 220, availableNow: 5, lotBreakdown: { ev: 1, accessible: 1, family: 0, motorcycle: 10 },
-    rates: { firstHourCents: 150, blockCents: 80, blockMin: 30, dailyCapCents: 1200 },
+    rates: { firstHourCents: 150, blockCents: 80, blockMin: 30, dailyCapCents: 1200, motorcycleEntryCents: 130 },
     dropoff: { point: "Gateway Drive taxi stand, Level 1", graceMin: 10 } },
   { id: "westgate", name: "Westgate", area: "Jurong Lake District", lat: 1.3345, lng: 103.743, capacity: 200, availableNow: 0, lotBreakdown: { ev: 0, accessible: 0, family: 0, motorcycle: 5 },
-    rates: { firstHourCents: 150, blockCents: 80, blockMin: 30, dailyCapCents: 1200 },
+    rates: { firstHourCents: 150, blockCents: 80, blockMin: 30, dailyCapCents: 1200, motorcycleEntryCents: 130 },
     dropoff: { point: "Gateway Drive pick-up point, Level 1", graceMin: 10 } },
 ];
 
 // rates are the mall's own parking charges (paid at the gantry, separate
-// from Curb's hold fee) and dropoff is its pick-up/drop-off point. Both are
+// from Curb's hold fee; motorcycles pay a flat per-entry charge instead) and dropoff is its pick-up/drop-off point. Both are
 // made-up demo values -- swap in each mall's published rates before launch.
 
 // Lot-type options a driver can request at booking time, beyond a plain
@@ -137,12 +137,13 @@ export function stayMinutes(arriveTime, leaveTime) {
 
 // Estimated parking charge (cents) at the mall's own rates for a stay:
 // first hour flat, then per block (rounded up), capped per day if the mall
-// has a cap. An estimate only -- the gantry charges the real amount.
-export function estimateParkingFee(mall, arriveTime, leaveTime) {
+// has a cap. Motorcycles pay the mall's flat per-entry charge. An estimate only -- the gantry charges the real amount.
+export function estimateParkingFee(mall, arriveTime, leaveTime, lotType) {
   if (!mall?.rates) return null;
-  const { firstHourCents, blockCents, blockMin, dailyCapCents } = mall.rates;
+  const { firstHourCents, blockCents, blockMin, dailyCapCents, motorcycleEntryCents } = mall.rates;
   const mins = stayMinutes(arriveTime, leaveTime);
   if (mins === 0) return 0;
+  if (lotType === "motorcycle") return motorcycleEntryCents;
   const extraBlocks = Math.max(0, Math.ceil((mins - 60) / blockMin));
   const total = firstHourCents + extraBlocks * blockCents;
   return dailyCapCents ? Math.min(total, dailyCapCents) : total;
@@ -156,4 +157,18 @@ export function formatDuration(mins) {
 
 export function formatCents(cents) {
   return `$${(cents / 100).toFixed(2)}`;
+}
+
+// Wording that follows the booked lot type -- a motorcycle lot is booked
+// with a motorcycle's plate, not a car's.
+export function vehicleNoun(lotType) {
+  return lotType === "motorcycle" ? "motorcycle" : "car";
+}
+
+export function plateLabel(lotType) {
+  return lotType === "motorcycle" ? "Motorcycle plate" : "Car plate";
+}
+
+export function estimateNote(lotType, mins) {
+  return lotType === "motorcycle" ? "flat per-entry rate" : `${formatDuration(mins)} at the mall's rates`;
 }

@@ -42,7 +42,7 @@ export default function ReceiptModal({ entry, onClose }) {
               </div>
             )}
             <div className="summary-row">
-              <span>Car plate</span>
+              <span>Vehicle plate</span>
               <span>{entry.plate || "--"}</span>
             </div>
             <div className="summary-row">

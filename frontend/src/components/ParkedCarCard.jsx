@@ -1,5 +1,6 @@
 import React from "react";
 import { timeLabel } from "../time";
+import { vehicleNoun } from "../mockData";
 import { CarIcon } from "./icons.jsx";
 
 // "Find my car" reminder -- shown on the map and Profile until the driver
@@ -18,7 +19,9 @@ export default function ParkedCarCard({ car, onClear, compact }) {
           <CarIcon />
         </div>
         <div className="parked-info">
-          <div className="parked-label">Your car · since {since}</div>
+          <div className="parked-label">
+            Your {vehicleNoun(car.lotType)} · since {since}
+          </div>
           <div className="parked-spot">
             Level {car.level} · Zone {car.zone}
           </div>

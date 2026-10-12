@@ -26,7 +26,7 @@ function DriverDetails() {
       />
       <input
         className="driver-input"
-        placeholder="Car plate"
+        placeholder="Vehicle plate"
         value={plate}
         onChange={(e) => setPlate(e.target.value)}
       />
