@@ -1,5 +1,5 @@
 import React from "react";
-import { LOT_TYPES } from "../mockData";
+import { LOT_TYPES, estimateParkingFee, findMall, formatCents } from "../mockData";
 import { CheckIcon } from "./icons.jsx";
 
 const PAYMENT_LABELS = { card: "Demo card", paynow: "PayNow (demo)" };
@@ -9,6 +9,11 @@ const PAYMENT_LABELS = { card: "Demo card", paynow: "PayNow (demo)" };
 // switching into tracking mode.
 export default function ConfirmationScreen({ reservation, onTrack }) {
   const feeLabel = `$${(reservation.fee_cents / 100).toFixed(2)}`;
+  const parkingEstimate = estimateParkingFee(
+    findMall(reservation.carpark_id),
+    reservation.arriveTime,
+    reservation.leaveTime
+  );
   const lotTypeLabel = LOT_TYPES.find((t) => t.id === reservation.lotType)?.label || "Standard";
 
   return (
@@ -52,6 +57,12 @@ export default function ConfirmationScreen({ reservation, onTrack }) {
             {feeLabel} · {PAYMENT_LABELS[reservation.paymentMethod] || "Demo card"}
           </span>
         </div>
+        {parkingEstimate != null && (
+          <div className="summary-row">
+            <span>Est. parking (at the gantry)</span>
+            <span>~{formatCents(parkingEstimate)}</span>
+          </div>
+        )}
       </div>
 
       <p className="muted">

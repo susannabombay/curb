@@ -18,7 +18,14 @@ export const CheckIcon = () => <Icon strokeWidth="3"><path d="M5 12.5l4.5 4.5L19
 export const AlertIcon = () => <Icon><path d="M12 3l9.5 17h-19L12 3z" /><path d="M12 10v4M12 17.5v.01" /></Icon>;
 export const NavIcon = () => <Icon><polygon points="3 11 22 2 13 21 11 13 3 11" /></Icon>;
 export const UserIcon = () => <Icon><circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5" /></Icon>;
-export const CarIcon = () => <Icon><path d="M5 16V11l2-5h10l2 5v5" /><path d="M3 16h18v3H3z" /><circle cx="7.5" cy="13" r=".5" /><circle cx="16.5" cy="13" r=".5" /></Icon>;
+export const CarIcon = () => (
+  <Icon>
+    <path d="M5 17H4a1 1 0 0 1-1-1v-3l2.2-5.1A2 2 0 0 1 7 6.7h10a2 2 0 0 1 1.8 1.2L21 13v3a1 1 0 0 1-1 1h-1" />
+    <path d="M3 13h18M9.5 17h5" />
+    <circle cx="7" cy="17" r="2" />
+    <circle cx="17" cy="17" r="2" />
+  </Icon>
+);
 export const CardIcon = () => <Icon><rect x="3" y="5" width="18" height="14" rx="3" /><path d="M3 10h18" /></Icon>;
 
 export function LogoGlyph({ size = 28 }) {

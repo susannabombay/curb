@@ -1,5 +1,5 @@
 import React from "react";
-import { EXTEND_FEE_CENTS } from "../mockData";
+import { formatCents } from "../mockData";
 import { ClockIcon } from "./icons.jsx";
 
 // The "key mechanic" pop-up: interrupts the screen once the hold is close
@@ -7,8 +7,9 @@ import { ClockIcon } from "./icons.jsx";
 // when reservation.showExtendPrompt is true, which is derived every tick
 // from the real clock (see deriveReservationView in App.jsx) -- not from a
 // counter that could drift.
-export default function ExtendModal({ mall, canExtend, onExtend, onCancel, onDismiss }) {
-  const feeLabel = `$${(EXTEND_FEE_CENTS / 100).toFixed(2)}`;
+export default function ExtendModal({ mall, canExtend, extendFeeCents, onExtend, onCancel, onDismiss }) {
+  // Free for Silver/Gold reward tiers (see rewards.js).
+  const feeLabel = extendFeeCents ? formatCents(extendFeeCents) : "free";
 
   return (
     <div className="modal-scrim">
@@ -21,7 +22,7 @@ export default function ExtendModal({ mall, canExtend, onExtend, onCancel, onDis
         <p className="muted">
           {canExtend
             ? `You haven't checked in at ${mall} yet. Extend your hold or release the lot for someone else.`
-            : `You haven't checked in at ${mall} yet, and you've already used your one extension. Check in now or release the lot for someone else.`}
+            : `You haven't checked in at ${mall} yet, and you've used all your extensions. Check in now or release the lot for someone else.`}
         </p>
         <div className="extend-actions">
           <button className="secondary" onClick={onCancel}>

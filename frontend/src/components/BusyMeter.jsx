@@ -7,7 +7,8 @@ const STEPS = 8;
 const STEP_MIN = 30;
 
 // Half-circle gauge of how full the carpark is predicted to be at the
-// driver's arrival time, plus a strip of the next few hours so they can
+// driver's arrival time -- shown as a named level only, never a raw
+// percentage (a low number would just tempt drivers to skip booking), plus a strip of the next few hours so they can
 // spot a quieter slot. Tapping a bar moves the arrival time to that slot.
 export default function BusyMeter({ mall, arriveTime, etaMinutes, onPickTime }) {
   const predicted = predictAvailability(mall, etaMinutes);
@@ -21,7 +22,8 @@ export default function BusyMeter({ mall, arriveTime, etaMinutes, onPickTime }) 
     const at = new Date(start.getTime() + i * STEP_MIN * 60000);
     const eta = Math.max(0, Math.round((at.getTime() - Date.now()) / 60000));
     const free = predictAvailability(mall, eta);
-    return { label: timeLabel(at), eta, pct: busyPercent(mall, free) };
+    const slotPct = busyPercent(mall, free);
+    return { label: timeLabel(at), eta, pct: slotPct, level: busyLevel(slotPct, free) };
   });
   // Highlight whichever slot is closest to the chosen arrival time.
   const selectedIdx = slots.reduce(
@@ -36,7 +38,7 @@ export default function BusyMeter({ mall, arriveTime, etaMinutes, onPickTime }) 
         <span className="muted">at {arriveTime}</span>
       </div>
 
-      <div className="busy-gauge" role="img" aria-label={`${pct}% full, ${level.label}`}>
+      <div className="busy-gauge" role="img" aria-label={`${level.label} when you arrive`}>
         <svg viewBox="0 0 220 120">
           <path className="busy-gauge-track" d="M 20 110 A 90 90 0 0 1 200 110" fill="none" strokeWidth="18" strokeLinecap="round" />
           <path
@@ -51,19 +53,15 @@ export default function BusyMeter({ mall, arriveTime, etaMinutes, onPickTime }) 
           />
         </svg>
         <div className="busy-gauge-center">
-          <div className="busy-gauge-pct">
-            {pct}
-            <small>%</small>
+          <div className="busy-gauge-level" style={{ color: level.color }}>
+            {level.label}
           </div>
-          <div className="busy-gauge-sub">full when you arrive</div>
+          <div className="busy-gauge-sub">when you arrive</div>
         </div>
       </div>
       <div className="busy-scale">
         <span>Quiet</span>
         <span>Packed</span>
-      </div>
-      <div className="busy-level">
-        <span className={`level-pill ${level.id}`}>{level.label}</span>
       </div>
 
       <div className="busy-hours">
@@ -77,10 +75,10 @@ export default function BusyMeter({ mall, arriveTime, etaMinutes, onPickTime }) 
               type="button"
               className={`busy-bar ${i === selectedIdx ? "selected" : ""}`}
               onClick={() => onPickTime(s.label)}
-              aria-label={`${s.label}: ${s.pct}% full`}
+              aria-label={`${s.label}: ${s.level.label}`}
             >
               <span className="busy-bar-tip">
-                {s.label} · {s.pct}%
+                {s.label} · {s.level.label}
               </span>
               <span className="busy-bar-fill" style={{ height: `${Math.max(s.pct, 6)}%` }} />
             </button>

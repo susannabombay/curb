@@ -1,8 +1,8 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { MapContainer, TileLayer, Marker, Tooltip, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
-import { MALLS, availabilityClass, busyLevel, busyPercent } from "../mockData";
-import { ArrowIcon, LogoGlyph, PinIcon, SearchIcon } from "./icons.jsx";
+import { MALLS, LOT_TYPES, availabilityClass, busyLevel, busyPercent, lotTypeCount } from "../mockData";
+import { ArrowIcon, CarIcon, LogoGlyph, PinIcon, SearchIcon } from "./icons.jsx";
 
 // Pins closer than this on screen (in pixels, at the current zoom/pan) get
 // grouped into a single cluster pin instead of stacking illegibly -- e.g.
@@ -17,10 +17,10 @@ const MALL_BOUNDS = MALLS.map((m) => [m.lat, m.lng]);
 // small white pill (status dot + free-lot count) as raw HTML, since that's
 // how divIcon works. When another mall is focused, every other pin is
 // dimmed and greyed out so the focused one stands out.
-function pinIcon(mall, focusedId) {
+function pinIcon(mall, focusedId, matchesFilter) {
   const cls = busyLevel(busyPercent(mall, mall.availableNow), mall.availableNow).id;
   const focused = mall.id === focusedId;
-  const dimmed = focusedId && !focused;
+  const dimmed = (focusedId && !focused) || !matchesFilter;
   return L.divIcon({
     className: `mall-pin-wrapper ${dimmed ? "pin-dimmed" : ""}`,
     html: `<div class="mall-pin ${cls} ${focused ? "focused" : ""}"><div class="mall-pin-body"><i></i>${mall.availableNow}</div><div class="mall-pin-tail"></div></div>`,
@@ -64,7 +64,7 @@ function useMallClusters(malls) {
   return groups;
 }
 
-function ClusterMarker({ malls, focusedId, onFocus }) {
+function ClusterMarker({ malls, focusedId, onFocus, matches }) {
   const map = useMap();
   const center = [
     malls.reduce((s, m) => s + m.lat, 0) / malls.length,
@@ -76,7 +76,7 @@ function ClusterMarker({ malls, focusedId, onFocus }) {
     return (
       <Marker
         position={center}
-        icon={pinIcon(m, focusedId)}
+        icon={pinIcon(m, focusedId, matches(m))}
         zIndexOffset={m.id === focusedId ? 1000 : 0}
         eventHandlers={{ click: () => onFocus(m.id) }}
       >
@@ -89,7 +89,7 @@ function ClusterMarker({ malls, focusedId, onFocus }) {
 
   // Overlapping pins: tapping zooms in until they separate, rather than
   // guessing which mall the tap meant.
-  const dimmed = focusedId && !malls.some((m) => m.id === focusedId);
+  const dimmed = (focusedId && !malls.some((m) => m.id === focusedId)) || !malls.some(matches);
   return (
     <Marker
       position={center}
@@ -103,10 +103,16 @@ function ClusterMarker({ malls, focusedId, onFocus }) {
   );
 }
 
-function MallMarkers({ focusedId, onFocus }) {
+function MallMarkers({ focusedId, onFocus, matches }) {
   const groups = useMallClusters(MALLS);
   return groups.map((malls, i) => (
-    <ClusterMarker key={malls.map((m) => m.id).join("+") || i} malls={malls} focusedId={focusedId} onFocus={onFocus} />
+    <ClusterMarker
+      key={malls.map((m) => m.id).join("+") || i}
+      malls={malls}
+      focusedId={focusedId}
+      onFocus={onFocus}
+      matches={matches}
+    />
   ));
 }
 
@@ -122,7 +128,7 @@ function FocusController({ focusedId, onClear }) {
   return null;
 }
 
-function MallCard({ mall, focused, onFocus, onOpen, cardRef }) {
+function MallCard({ mall, focused, onFocus, onOpen, cardRef, filterType }) {
   const pct = busyPercent(mall, mall.availableNow);
   const level = busyLevel(pct, mall.availableNow);
   return (
@@ -130,7 +136,7 @@ function MallCard({ mall, focused, onFocus, onOpen, cardRef }) {
       ref={cardRef}
       role="button"
       tabIndex={0}
-      className={`mall-card ${focused ? "focused" : ""}`}
+      className={`mall-card ${focused ? "focused" : ""} ${filterType && lotTypeCount(mall, filterType.id) === 0 ? "filtered-out" : ""}`}
       onClick={() => (focused ? onOpen(mall) : onFocus(mall.id))}
       onKeyDown={(e) => e.key === "Enter" && (focused ? onOpen(mall) : onFocus(mall.id))}
     >
@@ -141,28 +147,33 @@ function MallCard({ mall, focused, onFocus, onOpen, cardRef }) {
             <PinIcon />
             {mall.area}
           </div>
+          {filterType && (
+            <div className={`filter-count ${lotTypeCount(mall, filterType.id) === 0 ? "none" : ""}`}>
+              {lotTypeCount(mall, filterType.id) === 0
+                ? `No ${shortLabel(filterType)} lots free`
+                : `${lotTypeCount(mall, filterType.id)} ${shortLabel(filterType)} lots free`}
+            </div>
+          )}
         </div>
         <span className="mall-card-go">
           <ArrowIcon />
         </span>
       </div>
-      <div className="mall-card-bottom">
-        <span className="mall-card-free">
-          <b>{mall.availableNow}</b> free now
-        </span>
-        <span className={`level-pill ${level.id}`}>{level.label}</span>
+      <div className="mini-meter">
+        <div className="mini-meter-head">
+          <span>Busy meter</span>
+          <span className={`level-pill ${level.id}`}>{level.label}</span>
+        </div>
+        <div className="mini-meter-track">
+          <div className="mini-meter-fill" style={{ width: `${pct}%`, background: level.color }} />
+        </div>
+        <div className="mini-meter-legend">
+          <span>Quiet</span>
+          <span>Packed</span>
+        </div>
       </div>
       <div className="mall-card-extra" aria-hidden={!focused}>
         <div>
-          <div className="mini-meter">
-            <div className="mini-meter-track">
-              <div className="mini-meter-fill" style={{ width: `${focused ? pct : 0}%`, background: level.color }} />
-            </div>
-            <div className="mini-meter-legend">
-              <span>{pct}% full right now</span>
-              <span>{mall.capacity} lots</span>
-            </div>
-          </div>
           <button
             className="primary mall-card-cta"
             tabIndex={focused ? 0 : -1}
@@ -171,7 +182,7 @@ function MallCard({ mall, focused, onFocus, onOpen, cardRef }) {
               onOpen(mall);
             }}
           >
-            See busy meter &amp; book
+            Book
           </button>
         </div>
       </div>
@@ -184,12 +195,24 @@ function MallCard({ mall, focused, onFocus, onOpen, cardRef }) {
 // a pin or card "focuses" that mall -- its card expands, everything else
 // greys out, and the map flies to it. A second tap (or the card's button)
 // hands it to App via onSelectMall, which moves the flow on to MallDetail.
-export default function MapScreen({ onSelectMall }) {
+// Lot types a driver can filter the map by ("show me malls with free EV
+// lots") -- everything except Standard, which every mall has.
+const FILTER_TYPES = LOT_TYPES.filter((t) => t.id !== "standard");
+const SHORT_LABELS = { ev: "EV", family: "Family" };
+const shortLabel = (t) => SHORT_LABELS[t.id] || t.label;
+
+export default function MapScreen({ onSelectMall, parkedCar, onClearParkedCar }) {
   const [query, setQuery] = useState("");
   const [focusedId, setFocusedId] = useState(null);
+  const [filterId, setFilterId] = useState(null);
+  const filterType = FILTER_TYPES.find((t) => t.id === filterId) || null;
+  // Malls without a free lot of the filtered type stay on the map, greyed
+  // out, and sort to the end of the carousel.
+  const matches = (m) => !filterType || lotTypeCount(m, filterType.id) > 0;
+  const orderedMalls = [...MALLS].sort((a, b) => matches(b) - matches(a));
   const cardRefs = useRef({});
   const q = query.trim().toLowerCase();
-  const matches = q ? MALLS.filter((m) => m.name.toLowerCase().includes(q)) : [];
+  const searchResults = q ? MALLS.filter((m) => m.name.toLowerCase().includes(q)) : [];
 
   useEffect(() => {
     const el = focusedId && cardRefs.current[focusedId];
@@ -215,9 +238,9 @@ export default function MapScreen({ onSelectMall }) {
           <SearchIcon />
           <input placeholder="Search a mall (e.g. VivoCity)" value={query} onChange={(e) => setQuery(e.target.value)} />
         </div>
-        {matches.length > 0 && (
+        {searchResults.length > 0 && (
           <div className="map-search-results">
-            {matches.map((m) => (
+            {searchResults.map((m) => (
               <button key={m.id} className="map-search-result" onClick={() => onSelectMall(m)}>
                 <span>
                   <span className="map-search-result-name">{m.name}</span>
@@ -230,6 +253,33 @@ export default function MapScreen({ onSelectMall }) {
             ))}
           </div>
         )}
+        {parkedCar && (
+          <div className="parked-strip">
+            <span className="parked-strip-icon">
+              <CarIcon />
+            </span>
+            <span className="parked-strip-text">
+              <b>
+                Your car: {parkedCar.level} · Zone {parkedCar.zone}
+              </b>
+              <span>{parkedCar.carpark_name}{parkedCar.note ? ` · ${parkedCar.note}` : ""}</span>
+            </span>
+            <button className="link-btn" onClick={onClearParkedCar}>
+              I've left
+            </button>
+          </div>
+        )}
+        <div className="filter-row">
+          {FILTER_TYPES.map((t) => (
+            <button
+              key={t.id}
+              className={`chip filter-chip ${filterId === t.id ? "active" : ""}`}
+              onClick={() => setFilterId(filterId === t.id ? null : t.id)}
+            >
+              {shortLabel(t)}
+            </button>
+          ))}
+        </div>
       </div>
 
       <MapContainer
@@ -245,15 +295,16 @@ export default function MapScreen({ onSelectMall }) {
           url="https://maps.wikimedia.org/osm-intl/{z}/{x}/{y}{r}.png"
           attribution='&copy; OpenStreetMap contributors, &copy; Wikimedia'
         />
-        <MallMarkers focusedId={focusedId} onFocus={setFocusedId} />
+        <MallMarkers focusedId={focusedId} onFocus={setFocusedId} matches={matches} />
         <FocusController focusedId={focusedId} onClear={() => setFocusedId(null)} />
       </MapContainer>
 
       <div className={`mall-carousel ${focusedId ? "has-focus" : ""}`}>
-        {MALLS.map((m) => (
+        {orderedMalls.map((m) => (
           <MallCard
             key={m.id}
             mall={m}
+            filterType={filterType}
             focused={m.id === focusedId}
             onFocus={setFocusedId}
             onOpen={onSelectMall}

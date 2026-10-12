@@ -41,8 +41,17 @@ export const dismissPromptApi = (token, id) =>
   request(`/reservations/${id}/dismiss-prompt`, { method: "POST", token });
 export const cancelReservationApi = (token, id) =>
   request(`/reservations/${id}/cancel`, { method: "POST", token });
-export const arriveReservationApi = (token, id) =>
-  request(`/reservations/${id}/arrive`, { method: "POST", token });
+export const fetchReliability = (token) => request("/me/reliability", { token });
+export const shareReservationApi = (token, id) => request(`/reservations/${id}/share`, { method: "POST", token });
+// Public -- a passenger opening a share link has no account/token.
+export const fetchSharedReservation = (shareToken) => request(`/shared/${encodeURIComponent(shareToken)}`);
+
+export const arriveReservationApi = (token, id, position) =>
+  request(`/reservations/${id}/arrive`, {
+    method: "POST",
+    token,
+    body: { lat: position.lat, lon: position.lon, accuracy_m: position.accuracy },
+  });
 
 // Backend datetimes are naive UTC (no "Z"/offset -- SQLite drops tzinfo),
 // so the browser's Date parser must be told explicitly that it's UTC or it
@@ -60,6 +69,7 @@ export function mapReservationFromApi(r) {
   if (!r) return null;
   return {
     id: r.id,
+    carpark_id: r.carpark_id,
     carpark_name: r.carpark_name,
     lat: r.lat,
     lon: r.lon,
@@ -71,6 +81,8 @@ export function mapReservationFromApi(r) {
     paymentMethod: r.payment_method,
     fee_cents: r.fee_cents,
     status: r.status,
+    // Arrival time = when the booking was made + the ETA given at the time.
+    arriveAt: new Date(parseUtc(r.window_start).getTime() + r.eta_minutes * 60000),
     holdExpiresAt: parseUtc(r.window_end),
     extendDismissed: r.extend_dismissed,
     extendCount: r.extended_count,
@@ -81,11 +93,27 @@ export function mapReservationFromApi(r) {
 // so they use ProfileScreen's simpler history-row shape instead.
 export function mapHistoryEntryFromApi(r) {
   return {
+    id: r.id,
+    carpark_id: r.carpark_id,
     carpark_name: r.carpark_name,
     finishedAt: parseUtc(r.updated_at).toISOString(),
     finalStatus: r.status,
     fee_cents: r.fee_cents,
     arriveTime: r.arrive_time,
+    leaveTime: r.leave_time,
     plate: r.plate,
+    extendCount: r.extended_count,
+  };
+}
+
+// Server reliability ({ streak, arrived_count, no_show_count, tier }) in the
+// same shape as the local guest record from reliability.js. Booking
+// suspension still lives locally, so it's deliberately not included here.
+export function mapReliabilityFromApi(r) {
+  return {
+    streak: r.streak,
+    arrivedCount: r.arrived_count,
+    noShowCount: r.no_show_count,
+    tierId: r.tier,
   };
 }

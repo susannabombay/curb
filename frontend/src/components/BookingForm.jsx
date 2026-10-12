@@ -1,6 +1,16 @@
 import React, { useEffect, useState } from "react";
 import QRCode from "qrcode";
-import { BOOKING_FEE_CENTS, LOT_TYPES, lotTypeCount, PAYNOW_ENTITY_NAME, PAYNOW_UEN } from "../mockData";
+import {
+  BOOKING_FEE_CENTS,
+  LOT_TYPES,
+  lotTypeCount,
+  PAYNOW_ENTITY_NAME,
+  PAYNOW_UEN,
+  estimateParkingFee,
+  formatCents,
+  formatDuration,
+  stayMinutes,
+} from "../mockData";
 import { addMinutesToTimeLabel } from "../time";
 import { getSavedDriver, saveDriver } from "../profile";
 import { BackIcon, PinIcon } from "./icons.jsx";
@@ -9,7 +19,7 @@ import { BackIcon, PinIcon } from "./icons.jsx";
 // Payment is mocked either way (card or PayNow) -- this is a UI prototype,
 // so nothing here is stored or sent anywhere real, and the PayNow QR
 // encodes a fictional demo entity, never a real UEN.
-export default function BookingForm({ mall, arriveTime, onBack, onConfirm }) {
+export default function BookingForm({ mall, arriveTime, tier, onBack, onConfirm }) {
   const savedDriver = getSavedDriver();
   const [name, setName] = useState(savedDriver?.name || "");
   const [plate, setPlate] = useState(savedDriver?.plate || "");
@@ -22,7 +32,11 @@ export default function BookingForm({ mall, arriveTime, onBack, onConfirm }) {
   const [paymentMethod, setPaymentMethod] = useState("card");
   const [qrDataUrl, setQrDataUrl] = useState(null);
 
-  const feeLabel = `$${(BOOKING_FEE_CENTS / 100).toFixed(2)}`;
+  // Hold fee depends on the driver's reliability tier (rewards.js).
+  const feeCents = tier.holdFeeCents;
+  const feeLabel = formatCents(feeCents);
+  const discounted = feeCents < BOOKING_FEE_CENTS;
+  const parkingEstimate = estimateParkingFee(mall, arrive, leave);
 
   // Generated once, lazily, the first time the driver actually picks
   // PayNow -- no point building it up front for the common (card) path.
@@ -184,9 +198,23 @@ export default function BookingForm({ mall, arriveTime, onBack, onConfirm }) {
         <div className="cost-summary">
           <div className="cost-row">
             <span>Reservation hold fee</span>
-            <span>{feeLabel}</span>
+            <span>
+              {discounted && <s className="cost-was">{formatCents(BOOKING_FEE_CENTS)}</s>}
+              {feeLabel}
+            </span>
           </div>
-          <div className="muted">Standard parking rates apply on top once you arrive.</div>
+          {discounted && <div className="cost-perk">{tier.label} reward - thanks for always showing up</div>}
+          {parkingEstimate != null && (
+            <div className="cost-row cost-estimate">
+              <span>
+                Est. parking at {mall.name}
+                <small>
+                  {formatDuration(stayMinutes(arrive, leave))} at the mall's rates · paid at the gantry
+                </small>
+              </span>
+              <span>~{formatCents(parkingEstimate)}</span>
+            </div>
+          )}
         </div>
 
         <button type="submit" className="primary login-btn">

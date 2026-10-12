@@ -7,12 +7,26 @@
 // special-purpose pools real carparks segment out -- "Standard" isn't
 // listed here since that's just availableNow itself.
 export const MALLS = [
-  { id: "vivocity", name: "VivoCity", area: "HarbourFront", lat: 1.2645, lng: 103.8222, capacity: 250, availableNow: 214, lotBreakdown: { ev: 12, accessible: 8, family: 20, motorcycle: 40 } },
-  { id: "ion", name: "ION Orchard", area: "Orchard", lat: 1.3039, lng: 103.8318, capacity: 180, availableNow: 38, lotBreakdown: { ev: 4, accessible: 3, family: 6, motorcycle: 15 } },
-  { id: "marina", name: "Marina Square", area: "Marina", lat: 1.2926, lng: 103.8573, capacity: 300, availableNow: 156, lotBreakdown: { ev: 10, accessible: 6, family: 14, motorcycle: 25 } },
-  { id: "jem", name: "Jem", area: "Jurong Lake District", lat: 1.3331, lng: 103.7436, capacity: 220, availableNow: 5, lotBreakdown: { ev: 1, accessible: 1, family: 0, motorcycle: 10 } },
-  { id: "westgate", name: "Westgate", area: "Jurong Lake District", lat: 1.3345, lng: 103.743, capacity: 200, availableNow: 0, lotBreakdown: { ev: 0, accessible: 0, family: 0, motorcycle: 5 } },
+  { id: "vivocity", name: "VivoCity", area: "HarbourFront", lat: 1.2645, lng: 103.8222, capacity: 250, availableNow: 214, lotBreakdown: { ev: 12, accessible: 8, family: 20, motorcycle: 40 },
+    rates: { firstHourCents: 160, blockCents: 110, blockMin: 60, dailyCapCents: 1500 },
+    dropoff: { point: "Level 1 taxi stand, beside the main atrium entrance", graceMin: 10 } },
+  { id: "ion", name: "ION Orchard", area: "Orchard", lat: 1.3039, lng: 103.8318, capacity: 180, availableNow: 38, lotBreakdown: { ev: 4, accessible: 3, family: 6, motorcycle: 15 },
+    rates: { firstHourCents: 428, blockCents: 214, blockMin: 30, dailyCapCents: null },
+    dropoff: { point: "Orchard Turn driveway, Level 1 lobby", graceMin: 10 } },
+  { id: "marina", name: "Marina Square", area: "Marina", lat: 1.2926, lng: 103.8573, capacity: 300, availableNow: 156, lotBreakdown: { ev: 10, accessible: 6, family: 14, motorcycle: 25 },
+    rates: { firstHourCents: 270, blockCents: 110, blockMin: 30, dailyCapCents: 2000 },
+    dropoff: { point: "Raffles Boulevard entrance, beside the hotel lobby", graceMin: 15 } },
+  { id: "jem", name: "Jem", area: "Jurong Lake District", lat: 1.3331, lng: 103.7436, capacity: 220, availableNow: 5, lotBreakdown: { ev: 1, accessible: 1, family: 0, motorcycle: 10 },
+    rates: { firstHourCents: 150, blockCents: 80, blockMin: 30, dailyCapCents: 1200 },
+    dropoff: { point: "Gateway Drive taxi stand, Level 1", graceMin: 10 } },
+  { id: "westgate", name: "Westgate", area: "Jurong Lake District", lat: 1.3345, lng: 103.743, capacity: 200, availableNow: 0, lotBreakdown: { ev: 0, accessible: 0, family: 0, motorcycle: 5 },
+    rates: { firstHourCents: 150, blockCents: 80, blockMin: 30, dailyCapCents: 1200 },
+    dropoff: { point: "Gateway Drive pick-up point, Level 1", graceMin: 10 } },
 ];
+
+// rates are the mall's own parking charges (paid at the gantry, separate
+// from Curb's hold fee) and dropoff is its pick-up/drop-off point. Both are
+// made-up demo values -- swap in each mall's published rates before launch.
 
 // Lot-type options a driver can request at booking time, beyond a plain
 // Standard car lot. Keyed to match each mall's lotBreakdown above.
@@ -39,6 +53,8 @@ export const PAYNOW_UEN = "201999999D";
 
 // What we charge (in cents) to hold a lot, and what an extend costs.
 // Both are purely cosmetic in this mock -- no real payment is processed.
+// The hold fee itself now depends on the driver's reliability tier (see
+// rewards.js); BOOKING_FEE_CENTS is the standard (Starter) price.
 export const BOOKING_FEE_CENTS = 200;
 export const EXTEND_FEE_CENTS = 150;
 
@@ -95,4 +111,49 @@ export const BUSY_LEVELS = [
 export function busyLevel(pct, freeLots) {
   if (freeLots === 0) return BUSY_LEVELS[3];
   return BUSY_LEVELS.find((l) => pct < l.max) || BUSY_LEVELS[3];
+}
+
+// Check-in ("I've arrived") rules -- mirrored server-side in main.py.
+// The button stays greyed out until this many minutes before the driver's
+// arrival time, and only works within ARRIVE_RADIUS_M of the carpark.
+export const CHECKIN_OPENS_BEFORE_MIN = 10;
+export const ARRIVE_RADIUS_M = 300;
+export const MAX_ACCURACY_ALLOWANCE_M = 150;
+
+export function findMall(id) {
+  return MALLS.find((m) => m.id === id) || null;
+}
+
+// Minutes between two "HH:MM" labels, assuming leaving after midnight if
+// the leave time is earlier in the day than the arrival time.
+export function stayMinutes(arriveTime, leaveTime) {
+  if (!arriveTime || !leaveTime) return 0;
+  const [ah, am] = arriveTime.split(":").map(Number);
+  const [lh, lm] = leaveTime.split(":").map(Number);
+  let mins = lh * 60 + lm - (ah * 60 + am);
+  if (mins <= 0) mins += 24 * 60;
+  return mins;
+}
+
+// Estimated parking charge (cents) at the mall's own rates for a stay:
+// first hour flat, then per block (rounded up), capped per day if the mall
+// has a cap. An estimate only -- the gantry charges the real amount.
+export function estimateParkingFee(mall, arriveTime, leaveTime) {
+  if (!mall?.rates) return null;
+  const { firstHourCents, blockCents, blockMin, dailyCapCents } = mall.rates;
+  const mins = stayMinutes(arriveTime, leaveTime);
+  if (mins === 0) return 0;
+  const extraBlocks = Math.max(0, Math.ceil((mins - 60) / blockMin));
+  const total = firstHourCents + extraBlocks * blockCents;
+  return dailyCapCents ? Math.min(total, dailyCapCents) : total;
+}
+
+export function formatDuration(mins) {
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return h ? `${h}h${m ? ` ${m}m` : ""}` : `${m}m`;
+}
+
+export function formatCents(cents) {
+  return `$${(cents / 100).toFixed(2)}`;
 }

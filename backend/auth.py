@@ -38,6 +38,31 @@ def create_access_token(user_id: str) -> str:
 def decode_access_token(token: str) -> str | None:
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        return payload.get("sub")
     except JWTError:
         return None
+    # A passenger share link is signed with the same key -- it must never
+    # double as a login token.
+    if payload.get("typ") == "share":
+        return None
+    return payload.get("sub")
+
+
+# Read-only link to one reservation, for a passenger. Carries only the
+# reservation id (no user id), so it can't be used to log in, and expires
+# well after any hold could still be live.
+SHARE_TOKEN_EXPIRE_HOURS = 12
+
+
+def create_share_token(reservation_id: str) -> str:
+    expire = datetime.now(timezone.utc) + timedelta(hours=SHARE_TOKEN_EXPIRE_HOURS)
+    return jwt.encode({"res": reservation_id, "typ": "share", "exp": expire}, SECRET_KEY, algorithm=ALGORITHM)
+
+
+def decode_share_token(token: str) -> str | None:
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    except JWTError:
+        return None
+    if payload.get("typ") != "share":
+        return None
+    return payload.get("res")
