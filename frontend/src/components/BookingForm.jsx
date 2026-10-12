@@ -3,6 +3,7 @@ import QRCode from "qrcode";
 import { BOOKING_FEE_CENTS, LOT_TYPES, lotTypeCount, PAYNOW_ENTITY_NAME, PAYNOW_UEN } from "../mockData";
 import { addMinutesToTimeLabel } from "../time";
 import { getSavedDriver, saveDriver } from "../profile";
+import { BackIcon, PinIcon } from "./icons.jsx";
 
 // Checkout step: collects the details needed to actually hold a lot.
 // Payment is mocked either way (card or PayNow) -- this is a UI prototype,
@@ -22,9 +23,6 @@ export default function BookingForm({ mall, arriveTime, onBack, onConfirm }) {
   const [qrDataUrl, setQrDataUrl] = useState(null);
 
   const feeLabel = `$${(BOOKING_FEE_CENTS / 100).toFixed(2)}`;
-  const availableLotTypes = LOT_TYPES.filter(
-    (t) => t.id === "standard" || lotTypeCount(mall, t.id) > 0
-  );
 
   // Generated once, lazily, the first time the driver actually picks
   // PayNow -- no point building it up front for the common (card) path.
@@ -44,11 +42,24 @@ export default function BookingForm({ mall, arriveTime, onBack, onConfirm }) {
 
   return (
     <div className="screen checkout-screen">
-      <button className="back" onClick={onBack}>
-        ← Back
-      </button>
-      <h2>Confirm booking</h2>
-      <div className="carpark-area">{mall.name}</div>
+      <div className="topbar">
+        <button className="icon-btn" onClick={onBack} aria-label="Back">
+          <BackIcon />
+        </button>
+        <span className="topbar-title">Confirm booking</span>
+        <span className="topbar-spacer" />
+      </div>
+
+      <div className="detail-head">
+        <div className="detail-icon">P</div>
+        <div>
+          <h2>{mall.name}</h2>
+          <div className="carpark-area">
+            <PinIcon />
+            {mall.area}
+          </div>
+        </div>
+      </div>
 
       <form
         className="login-form"
@@ -65,85 +76,110 @@ export default function BookingForm({ mall, arriveTime, onBack, onConfirm }) {
           });
         }}
       >
-        <label className="field-label">Name</label>
-        <input
-          autoFocus
-          placeholder="e.g. Jane Doe"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          required
-        />
+        <div className="card form-card">
+          <div className="form-card-title">Driver</div>
+          <label className="field-label">Name</label>
+          <input
+            autoFocus
+            placeholder="e.g. Jane Doe"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
 
-        <label className="field-label">Car plate</label>
-        <input
-          placeholder="e.g. SGX1234A"
-          value={plate}
-          onChange={(e) => setPlate(e.target.value)}
-          required
-        />
+          <label className="field-label">Car plate</label>
+          <input
+            placeholder="e.g. SGX1234A"
+            value={plate}
+            onChange={(e) => setPlate(e.target.value)}
+            required
+          />
 
-        <label className="checkbox-row">
-          <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} />
-          Remember my details for next time
-        </label>
-
-        <label className="field-label">Arriving at</label>
-        <input type="time" value={arrive} onChange={(e) => setArrive(e.target.value)} required />
-
-        <label className="field-label">Leaving by</label>
-        <input type="time" value={leave} onChange={(e) => setLeave(e.target.value)} required />
-
-        <label className="field-label">Lot type</label>
-        <div className="chip-row">
-          {availableLotTypes.map((t) => (
-            <button
-              type="button"
-              key={t.id}
-              className={`chip ${lotType === t.id ? "active" : ""}`}
-              onClick={() => setLotType(t.id)}
-            >
-              {t.label}
-              {t.id !== "standard" && <span className="chip-count">{lotTypeCount(mall, t.id)}</span>}
-            </button>
-          ))}
+          <label className="checkbox-row">
+            <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} />
+            Remember my details for next time
+          </label>
         </div>
 
-        <label className="field-label">Payment method</label>
-        <div className="chip-row">
-          <button
-            type="button"
-            className={`chip ${paymentMethod === "card" ? "active" : ""}`}
-            onClick={() => setPaymentMethod("card")}
-          >
-            Demo card
-          </button>
-          <button
-            type="button"
-            className={`chip ${paymentMethod === "paynow" ? "active" : ""}`}
-            onClick={() => setPaymentMethod("paynow")}
-          >
-            PayNow (demo)
-          </button>
-        </div>
-
-        {paymentMethod === "card" ? (
-          <div className="mock-card">
-            <span>Visa •••• 4242</span>
-            <span className="muted">(demo card -- not charged)</span>
-          </div>
-        ) : (
-          <div className="paynow-card">
-            {qrDataUrl ? (
-              <img src={qrDataUrl} alt="Demo PayNow QR code" width={132} height={132} />
-            ) : (
-              <div className="paynow-qr-placeholder muted">Generating QR...</div>
-            )}
+        <div className="card form-card">
+          <div className="form-card-title">Timing</div>
+          <div className="time-pair">
             <div>
-              <div className="paynow-entity">{PAYNOW_ENTITY_NAME}</div>
-              <div className="muted">UEN {PAYNOW_UEN} (demo -- not a real payee, not charged)</div>
+              <label className="field-label">Arriving at</label>
+              <input type="time" value={arrive} onChange={(e) => setArrive(e.target.value)} required />
+            </div>
+            <div>
+              <label className="field-label">Leaving by</label>
+              <input type="time" value={leave} onChange={(e) => setLeave(e.target.value)} required />
             </div>
           </div>
-        )}
+        </div>
+
+        <div className="card form-card">
+          <div className="form-card-title">Lot type</div>
+          <div className="chip-row" style={{ marginTop: 10 }}>
+            {LOT_TYPES.map((t) => {
+              const count = lotTypeCount(mall, t.id);
+              // Lot types with nothing free stay visible but greyed out, so
+              // the driver can see they exist here -- just not right now.
+              const unavailable = t.id !== "standard" && count === 0;
+              return (
+                <button
+                  type="button"
+                  key={t.id}
+                  disabled={unavailable}
+                  className={`chip ${lotType === t.id ? "active" : ""} ${unavailable ? "disabled" : ""}`}
+                  onClick={() => setLotType(t.id)}
+                >
+                  {t.label}
+                  {t.id !== "standard" && <span className="chip-count">{count}</span>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="card form-card">
+          <div className="form-card-title">Payment</div>
+          <div className="segmented" style={{ marginTop: 10 }}>
+            <button
+              type="button"
+              className={paymentMethod === "card" ? "active" : ""}
+              onClick={() => setPaymentMethod("card")}
+            >
+              Demo card
+            </button>
+            <button
+              type="button"
+              className={paymentMethod === "paynow" ? "active" : ""}
+              onClick={() => setPaymentMethod("paynow")}
+            >
+              PayNow (demo)
+            </button>
+          </div>
+
+          {paymentMethod === "card" ? (
+            <div className="mock-card">
+              <div className="mock-card-row">
+                <span className="mock-card-brand">VISA</span>
+                <span className="muted">Demo · not charged</span>
+              </div>
+              <div className="mock-card-number">•••• •••• •••• 4242</div>
+            </div>
+          ) : (
+            <div className="paynow-card">
+              {qrDataUrl ? (
+                <img src={qrDataUrl} alt="Demo PayNow QR code" width={132} height={132} />
+              ) : (
+                <div className="paynow-qr-placeholder muted">Generating QR...</div>
+              )}
+              <div>
+                <div className="paynow-entity">{PAYNOW_ENTITY_NAME}</div>
+                <div className="muted">UEN {PAYNOW_UEN} (demo -- not a real payee, not charged)</div>
+              </div>
+            </div>
+          )}
+        </div>
 
         <div className="cost-summary">
           <div className="cost-row">
@@ -154,7 +190,7 @@ export default function BookingForm({ mall, arriveTime, onBack, onConfirm }) {
         </div>
 
         <button type="submit" className="primary login-btn">
-          Confirm &amp; book -- {feeLabel}
+          Confirm &amp; pay {feeLabel}
         </button>
       </form>
     </div>

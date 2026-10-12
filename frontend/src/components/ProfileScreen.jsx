@@ -1,33 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { formatCountdown } from "../time";
-import { getStoredTheme, setTheme } from "../theme";
 import { getSavedDriver, saveDriver } from "../profile";
 import { isSuspended } from "../reliability";
-
-// Three-way appearance switch: "system" (default, follows the OS/browser),
-// or an explicit "light"/"dark" override persisted in localStorage. Kept
-// local to this screen since it's the only place it's surfaced.
-function ThemeSwitch() {
-  const [choice, setChoice] = useState(() => getStoredTheme() || "system");
-
-  useEffect(() => {
-    setTheme(choice === "system" ? null : choice);
-  }, [choice]);
-
-  return (
-    <div className="theme-switch">
-      {["system", "light", "dark"].map((opt) => (
-        <button
-          key={opt}
-          className={`theme-switch-btn ${choice === opt ? "active" : ""}`}
-          onClick={() => setChoice(opt)}
-        >
-          {opt[0].toUpperCase() + opt.slice(1)}
-        </button>
-      ))}
-    </div>
-  );
-}
 
 // Editable name/plate, saved to localStorage so BookingForm can pre-fill
 // them on the next booking instead of the driver retyping every time.
@@ -99,23 +73,21 @@ function statusLabel(status) {
 export default function ProfileScreen({ user, reservation, history, reliability, onTrack, onLogout }) {
   const hasActive = reservation && ["active", "extended"].includes(reservation.effectiveStatus);
 
+  const initial = user?.guest ? "G" : (user?.email || "?")[0].toUpperCase();
+
   return (
     <div className="screen profile-screen">
-      <h2>Profile</h2>
-      <div className="muted">{user?.guest ? "Continue as guest" : `Signed in as ${user?.email}`}</div>
+      <div className="profile-head">
+        <div className="avatar">{initial}</div>
+        <div>
+          <h2>{user?.guest ? "Guest driver" : "Profile"}</h2>
+          <div className="muted">{user?.guest ? "Not signed in" : user?.email}</div>
+        </div>
+      </div>
 
-      <div className="field-label section-label">Your details</div>
-      <DriverDetails />
-
-      <div className="field-label section-label">Appearance</div>
-      <ThemeSwitch />
-
-      <div className="field-label section-label">Reliability</div>
-      <ReliabilityStatus reliability={reliability} />
-
-      <div className="field-label section-label">Active reservation</div>
+      <div className="section-title">Active reservation</div>
       {hasActive ? (
-        <div className="summary-card">
+        <div className="card summary-card" style={{ margin: 0 }}>
           <div className="summary-row">
             <span>{reservation.carpark_name}</span>
             <span className={`status-pill ${reservation.effectiveStatus}`}>
@@ -131,19 +103,30 @@ export default function ProfileScreen({ user, reservation, history, reliability,
           </button>
         </div>
       ) : (
-        <p className="muted">No active reservation - search a mall on the map to book a spot.</p>
+        <p className="muted empty-note">No active reservation - pick a mall on the map to book a spot.</p>
       )}
 
-      <div className="field-label section-label">Booking history</div>
+      <div className="section-title">Your details</div>
+      <div className="card">
+        <DriverDetails />
+      </div>
+
+      <div className="section-title">Reliability</div>
+      <ReliabilityStatus reliability={reliability} />
+
+      <div className="section-title">Booking history</div>
       {history && history.length > 0 ? (
         <div className="history-list">
           {history.map((h, i) => (
             <div className="history-row" key={i}>
-              <div>
-                <div className="history-mall">{h.carpark_name}</div>
-                <div className="muted">
-                  {new Date(h.finishedAt).toLocaleDateString([], { month: "short", day: "numeric" })} ·{" "}
-                  {h.arriveTime}
+              <div className="history-left">
+                <div className="history-icon">P</div>
+                <div>
+                  <div className="history-mall">{h.carpark_name}</div>
+                  <div className="muted">
+                    {new Date(h.finishedAt).toLocaleDateString([], { month: "short", day: "numeric" })} ·{" "}
+                    {h.arriveTime}
+                  </div>
                 </div>
               </div>
               <div className="history-right">
@@ -154,7 +137,7 @@ export default function ProfileScreen({ user, reservation, history, reliability,
           ))}
         </div>
       ) : (
-        <p className="muted">No past bookings yet.</p>
+        <p className="muted empty-note">No past bookings yet.</p>
       )}
 
       <button className="ghost logout-btn" onClick={onLogout}>

@@ -1,5 +1,6 @@
 import React from "react";
 import { formatCountdown } from "../time";
+import { NavIcon } from "./icons.jsx";
 
 function statusLabel(status) {
   return (
@@ -34,30 +35,57 @@ export default function ReservationPanel({ reservation, onExtend, onCancel, onAr
 
   return (
     <div className="screen reservation-screen">
-      <h2>{reservation.carpark_name}</h2>
-      <div className={`status-pill ${reservation.effectiveStatus}`}>
-        {statusLabel(reservation.effectiveStatus)}
+      <div className="topbar">
+        <span className="topbar-spacer" />
+        <span className="topbar-title">Your reservation</span>
+        <span className="topbar-spacer" />
       </div>
 
-      {reservation.plate && (
-        <div className="booking-summary">
-          <span>{reservation.plate}</span>
-          {reservation.arriveTime && <span>Arriving {reservation.arriveTime}</span>}
-          {reservation.leaveTime && <span>Leaving {reservation.leaveTime}</span>}
-          {typeof reservation.fee_cents === "number" && (
-            <span>${(reservation.fee_cents / 100).toFixed(2)} hold fee</span>
-          )}
+      <div className="card ticket">
+        <div className="ticket-top">
+          <span className={`status-pill ${reservation.effectiveStatus}`}>
+            {statusLabel(reservation.effectiveStatus)}
+          </span>
+          <div className="ticket-mall">{reservation.carpark_name}</div>
+          <div className="ticket-sub">Singapore</div>
         </div>
-      )}
 
-      {!isTerminal && (
-        <div className="countdown">
-          <div className={`countdown-time ${reservation.isUrgent ? "urgent" : ""}`}>
-            {formatCountdown(reservation.secondsRemaining)}
+        {!isTerminal && (
+          <div className="countdown">
+            <div className={`countdown-time ${reservation.isUrgent ? "urgent" : ""}`}>
+              {formatCountdown(reservation.secondsRemaining)}
+            </div>
+            <div className="countdown-label">until your hold expires</div>
           </div>
-          <div className="countdown-label">until your hold expires</div>
-        </div>
-      )}
+        )}
+
+        {reservation.plate && (
+          <div className="ticket-grid">
+            <div>
+              <div className="stat-label">Car plate</div>
+              <b>{reservation.plate}</b>
+            </div>
+            {typeof reservation.fee_cents === "number" && (
+              <div>
+                <div className="stat-label">Hold fee</div>
+                <b>${(reservation.fee_cents / 100).toFixed(2)}</b>
+              </div>
+            )}
+            {reservation.arriveTime && (
+              <div>
+                <div className="stat-label">Arriving</div>
+                <b>{reservation.arriveTime}</b>
+              </div>
+            )}
+            {reservation.leaveTime && (
+              <div>
+                <div className="stat-label">Leaving by</div>
+                <b>{reservation.leaveTime}</b>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* The main 5-min prompt is a modal (see ExtendModal). If the driver
           dismissed it, this stays as a quiet fallback so extending is still
@@ -72,18 +100,18 @@ export default function ReservationPanel({ reservation, onExtend, onCancel, onAr
         <div className="reservation-actions">
           {navUrl && (
             <a className="nav-btn" href={navUrl} target="_blank" rel="noreferrer">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polygon points="3 11 22 2 13 21 11 13 3 11" />
-              </svg>
+              <NavIcon />
               Navigate there
             </a>
           )}
-          <button className="ghost" onClick={onArrive}>
-            I've arrived
-          </button>
-          <button className="ghost danger" onClick={onCancel}>
-            Cancel reservation
-          </button>
+          <div className="action-pair">
+            <button className="primary" onClick={onArrive}>
+              I've arrived
+            </button>
+            <button className="ghost danger" onClick={onCancel}>
+              Cancel
+            </button>
+          </div>
         </div>
       )}
 

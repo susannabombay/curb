@@ -74,3 +74,25 @@ export function predictAvailability(mall, etaMinutes) {
   const predicted = Math.round(mall.availableNow + drift + wave);
   return Math.max(0, Math.min(mall.capacity, predicted));
 }
+
+// "How busy is it" as a 0-100 percentage of the carpark that's occupied --
+// the busy meter's headline instead of a raw lot count, since "nearly full"
+// reads faster at a glance than "38 of 180".
+export function busyPercent(mall, freeLots) {
+  if (!mall.capacity) return 100;
+  return Math.round(100 * (1 - freeLots / mall.capacity));
+}
+
+// Named bucket + colour key for a busy percentage. A completely full
+// carpark is always "packed", whatever the percentage rounds to.
+export const BUSY_LEVELS = [
+  { id: "quiet", label: "Quiet", max: 40, color: "var(--good)" },
+  { id: "moderate", label: "Moderate", max: 70, color: "var(--warn)" },
+  { id: "busy", label: "Busy", max: 90, color: "var(--serious)" },
+  { id: "packed", label: "Packed", max: 100, color: "var(--bad)" },
+];
+
+export function busyLevel(pct, freeLots) {
+  if (freeLots === 0) return BUSY_LEVELS[3];
+  return BUSY_LEVELS.find((l) => pct < l.max) || BUSY_LEVELS[3];
+}

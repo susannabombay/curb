@@ -1,5 +1,6 @@
 import React from "react";
 import { LOT_TYPES } from "../mockData";
+import { CheckIcon } from "./icons.jsx";
 
 const PAYMENT_LABELS = { card: "Demo card", paynow: "PayNow (demo)" };
 
@@ -12,10 +13,19 @@ export default function ConfirmationScreen({ reservation, onTrack }) {
 
   return (
     <div className="screen confirmation-screen">
-      <div className="confirmation-badge">Booking confirmed</div>
-      <h2>{reservation.carpark_name}</h2>
+      <div className="confirm-hero">
+        <div className="confirm-check">
+          <CheckIcon />
+        </div>
+        <h2>You're booked!</h2>
+        <div className="muted">Your lot at {reservation.carpark_name} is on hold.</div>
+      </div>
 
-      <div className="summary-card">
+      <div className="card summary-card">
+        <div className="summary-row">
+          <span>Carpark</span>
+          <span>{reservation.carpark_name}</span>
+        </div>
         <div className="summary-row">
           <span>Name</span>
           <span>{reservation.name || "--"}</span>
@@ -52,7 +62,7 @@ export default function ConfirmationScreen({ reservation, onTrack }) {
         . We'll prompt you to extend or cancel if you haven't checked in by then.
       </p>
 
-      <button className="primary" onClick={onTrack}>
+      <button className="primary full-btn" onClick={onTrack}>
         Track my reservation
       </button>
     </div>

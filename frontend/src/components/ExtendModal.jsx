@@ -1,5 +1,6 @@
 import React from "react";
 import { EXTEND_FEE_CENTS } from "../mockData";
+import { ClockIcon } from "./icons.jsx";
 
 // The "key mechanic" pop-up: interrupts the screen once the hold is close
 // to expiring and the driver hasn't checked in yet. App only renders this
@@ -12,6 +13,10 @@ export default function ExtendModal({ mall, canExtend, onExtend, onCancel, onDis
   return (
     <div className="modal-scrim">
       <div className="modal-card">
+        <div className="modal-grabber" />
+        <div className="modal-icon">
+          <ClockIcon />
+        </div>
         <h3>5 minutes left</h3>
         <p className="muted">
           {canExtend
@@ -20,7 +25,7 @@ export default function ExtendModal({ mall, canExtend, onExtend, onCancel, onDis
         </p>
         <div className="extend-actions">
           <button className="secondary" onClick={onCancel}>
-            Cancel reservation
+            Release lot
           </button>
           {canExtend && (
             <button className="primary" onClick={onExtend}>
